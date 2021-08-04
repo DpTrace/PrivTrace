@@ -6,15 +6,15 @@ Instructions:
 
 1.install and use anaconda
 
-*create environment in the server: conda env create -f environment.yml; source activate db_code
+* create environment in the server: conda env create -f environment.yml; source activate db_code
 
-*share the environment: conda env export > environment.yml
+* share the environment: conda env export > environment.yml
 
-*or create a new one: conda create -n myenv; conda activate myenv; conda install numpy, pandas, scipy, matplotlib
+* or create a new one: conda create -n myenv; conda activate myenv; conda install numpy, pandas, scipy, matplotlib
 
 
 2.how to run the code
 
-*entry is main.py
+* entry is main.py
 
-*we provide a small example dataset to run the program
+* we provide a small example dataset to run the program
