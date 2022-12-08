@@ -1,0 +1,12 @@
+#0:
+>0:5.732,5.232;5.731,5.219;
+#1:
+>0:5.785,5.230;5.767,5.227;5.794,5.256;
+#2:
+>0:5.840,5.272;5.832,5.268;
+.....
+
+Above is an example of a file of trajectories.
+Every trajectory data contains two lines. The first line shows the index of the trajectory and the second line is the location points of the trajectory.
+The format of the first line is "#i:", where i is the index of the trajectory.
+The second line starts with a sign ">0:" that does not have any meaning. Following are the location points of the trajectory. Every point has the format "x,y" and every two points are divided by a ";".
