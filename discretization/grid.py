@@ -1,4 +1,3 @@
-import config.folder_and_file_names as config
 from config.parameter_carrier import ParameterCarrier
 import numpy as np
 from data_preparation.trajectory_set import TrajectorySet
@@ -6,7 +5,6 @@ from data_preparation.trajectory import Trajectory
 from tools.noise import Noise
 from tools.general_tools import GeneralTools
 from discretization.divide import Divide
-from discretization.cells import Cells
 import copy as cop
 
 
@@ -19,8 +17,6 @@ class Grid:
         self.south_border = -1
         self.west_border = -1
         self.east_border = -1
-
-        #
         self.cc = cc
         self.extend_ratio = 0.00001
 
@@ -30,7 +26,6 @@ class Grid:
 
         # this parameter gives all point numbers in the space
         self.whole_point_number = 0
-
         self.trajectory_number = 0
 
         # these two parameters store the divide result
@@ -40,7 +35,6 @@ class Grid:
         # this parameter stores position of a 'cell' divided by the grid in level 1 dividing
         # the column 0 indicates row in the grid and column 1 indicates column in the grid
         self.level1_cell_position = np.array([])
-
         self.level1_cell_number = -1
 
         # this parameter records which 'cell' lies in given position. it is inverse of level1_cell_position
@@ -52,47 +46,23 @@ class Grid:
         # these two parameters store non-noisy and noisy version of grid density
         self.level1_grid_real_density = np.array([])
         self.level1_grid_noisy_density = np.array([])
-
-        #
         self.level2_subdividing_parameter = np.array([])
-
-        #
         self.level2_index_position_dict = np.array([])
-
-        #
         self.level2_position_index_dict = {}
-
-        #
         self.level2_subcell_to_large_cell_dict = np.array([])
-
-        #
         self.level2_borders = np.array([])
-
-        #
         self.level2_x_bin_dict = []
-
-        #
         self.level2_y_bin_dict = []
-
-        #
         self.subcell_number = -1
-
-        #
         self.level2_real_density = np.array([])
         self.level2_noisy_density = np.array([])
-
-        #
         self.real_subcell_index_to_usable_index_dict = np.array([])
         self.usable_subcell_index_to_real_index_dict = np.array([])
         self.usable_state_number = -1
-
         self.subcell_neighbors_position = []
         self.subcell_neighbors_real_index = []
         self.subcell_neighbors_usable_index = []
 
-    # parameter I/O
-
-    #
     def give_level2_cells_border(self, borders: np.ndarray) -> None:
         self.level2_borders = borders
 
@@ -122,8 +92,6 @@ class Grid:
     def get_level2_position_by_index(self, index):
         position = self.level2_position_index_dict[index]
         return np.array([position[0], position[1], position[2]])
-
-        # this function gives border of grid, order is north, south, west, east
 
     def give_border(self, value1: np.ndarray, direction1: str) -> None:
         if direction1 == 'n':
@@ -167,7 +135,6 @@ class Grid:
     def get_extend_ratio(self):
         return self.extend_ratio
 
-    #
     def give_whole_point_number(self, point_number) -> None:
         self.whole_point_number = point_number
 
@@ -211,62 +178,44 @@ class Grid:
         index = position_index_dict[position]
         return index
 
-    #
     def give_level1_real_density(self, density_array: np.ndarray) -> None:
         self.level1_grid_real_density = density_array
 
-    #
     def get_level1_real_density(self) -> np.ndarray:
         return self.level1_grid_real_density
 
-    #
     def give_level1_noisy_density(self, noisy_density) -> None:
         self.level1_grid_noisy_density = noisy_density
 
-    #
     def get_level1_noisy_density(self) -> np.ndarray:
         return self.level1_grid_noisy_density
 
-    #
     def give_level1_cell_number(self, cell_number: int) -> None:
         self.level1_cell_number = cell_number
 
-    #
     def get_level1_cell_number(self) -> int:
         return self.level1_cell_number
 
-    #
     def give_level2_parameter(self, level2_parameter: np.ndarray) -> None:
         self.level2_subdividing_parameter = level2_parameter
 
-    #
     def get_level2_parameter(self) -> np.ndarray:
         return self.level2_subdividing_parameter
 
-    #
     def add_level2_subdividing_x_bin(self, bin1):
         self.level2_x_bin_dict.append(bin1)
 
-    #
     def add_level2_subdividing_y_bin(self, bin1):
         self.level2_y_bin_dict.append(bin1)
 
-    #
     def get_level2_subdividing_x_bin_by_index(self, index):
         return self.level2_x_bin_dict[index]
 
-    #
     def get_level2_subdividing_y_bin_by_index(self, index):
         return self.level2_y_bin_dict[index]
 
-    # end of I/O
-    #
-    #
-
-    # get border of space
     def border(self, trajectory_set1: TrajectorySet) -> None:
         extend_ratio1 = self.get_extend_ratio()
-        # find the largest and smallest longitude and latitude
         south1 = 1000000000
         north1 = -1000000000
         west1 = 1000000000
@@ -360,12 +309,8 @@ class Grid:
         y_bins = self.get_y_divide_bins()
         x_bins = self.get_x_divide_bins()
         y_bin_number = y_bins.size - 1
-        column_number = x_bins.size - 1
         index_array = x_index_array * y_bin_number + y_index_array
         return index_array
-
-    # # this function creates level1 cells
-    # def creat_cells(self):
 
     # this function creates a dictionary of position-index of level 1 dividing
     def level1_position_index_dictionary(self) -> dict:
@@ -430,7 +375,7 @@ class Grid:
         cc1 = self.cc
         real_density = self.get_level1_real_density()
         noise1 = Noise()
-        sensitivity = cc1.sensitivity_for_level1_cell_density
+        sensitivity = 1
         noisy_density = noise1.add_laplace(real_density, epsilon_for_level1_density, sensitivity)
         self.give_level1_noisy_density(noisy_density)
 
@@ -440,13 +385,9 @@ class Grid:
         return trajectory_number1 * 0.05 * 1 / self.level1_cell_number
 
     # this function calculate how many cell should subdivide given the noisy density of the cell
-    def subdividing_number(self, noisy_density, given_subpar=-1):
+    def subdividing_number(self, noisy_density):
         divide1 = Divide(self.cc)
-        # method16c2 = config.method_16_divide_initial_parameter / 2
-        # epsilon_inner2 = config.total_epsilon * (1 - config.epsilon_partition[0])
-        # subdivide_parameter1 = np.int(np.ceil(np.sqrt(noisy_density * epsilon_inner2 * 10 / method16c2)
-        #                                       * config.subdividing_multiplier))
-        subdivide_parameter1 = divide1.subdividing_parameter(noisy_density, given_subpar=given_subpar)
+        subdivide_parameter1 = divide1.subdividing_parameter(noisy_density)
         return subdivide_parameter1
 
     # this function calculates subdividing parameter for every level1 cell
@@ -456,15 +397,9 @@ class Grid:
         subdividing_parameter = np.zeros(level1_cell_number, dtype=int) + 1
         threshold = self.subdividing_threshold()
         level1_cell_need_to_subdivide = noisy_density > threshold
-        if self.cc.fixed_level2_divided_large_cell_number > 0:
-            density_sort = np.sort(noisy_density)
-            borderline_density = density_sort[-(self.cc.fixed_level2_divided_large_cell_number + 1)]
-            subpar = borderline_density
-        else:
-            subpar = -1
         for cell_index in range(noisy_density.size):
             if level1_cell_need_to_subdivide[cell_index]:
-                subdividing_number = self.subdividing_number(noisy_density[cell_index], given_subpar=subpar)
+                subdividing_number = self.subdividing_number(noisy_density[cell_index])
                 subdividing_parameter[cell_index] = subdividing_number
         self.give_level2_parameter(subdividing_parameter)
 
@@ -486,9 +421,7 @@ class Grid:
         this_cell_y_bin = general_tool1.get_bin(big_cell_s, big_cell_n, this_cell_subdividing_parameter)
         self.add_level2_subdividing_x_bin(this_cell_x_bin)
         self.add_level2_subdividing_y_bin(this_cell_y_bin)
-        # return this_cell_x_bin, this_cell_y_bin
 
-    #
     def give_subcell_border(self, large_cell_index: int, subcell_index: int, subcell_inner_x_index: int,
                             subcell_inner_y_index: int):
         this_cell_x_bin = self.get_level2_subdividing_x_bin_by_index(large_cell_index)
@@ -554,7 +487,6 @@ class Grid:
             neighbors = self.get_neighbor_of_i(subcell_index)
             self.subcell_neighbors_position.append(neighbors)
 
-    #
     def construct_real_index_neighbors(self):
         positions = self.subcell_neighbors_position
         real_index = []
@@ -569,7 +501,6 @@ class Grid:
 
         self.subcell_neighbors_real_index = real_index
 
-    #
     def construct_usable_index_neighbors(self):
         real_indices = self.subcell_neighbors_real_index
         usable_indices = []
@@ -663,7 +594,6 @@ class Grid:
         y_bins = self.level2_y_bin_dict[large_index]
         x_number = x_bins.size - 1
         y_number = y_bins.size - 1
-        # neighbors = np.array([], dtype=int)
 
         if x_position_in_large == 0:
             if y_position_in_large == 0:
@@ -721,7 +651,6 @@ class Grid:
                 east_neighbors = self.adjacent_subcells_of_a_subcell(
                     neighbor_direction, east_large_neighbor_x, large_cell_level1_y)
                 neighbor_subcells = neighbor_subcells + east_neighbors
-        # if not np.array(neighboring_direction).any():
         neighbor_subcells = neighbor_subcells \
                             + self.direct_neighbors_within_large_cell_of_subcell(x_number, large_index,
                                                                                  x_position_in_large,
@@ -868,7 +797,6 @@ class Grid:
 
     # this function transform point array in a trajectory into cell index trajectory
     def calculate_index_array_for_trajectory(self, trajectory1: Trajectory):
-        # point_number = trajectory1.get_point_number()
         point_array = trajectory1.get_trajectory_list()
         level1_array = trajectory1.get_level1_index_array()
         x_point_array = point_array[:, 0]
@@ -898,24 +826,7 @@ class Grid:
         density = trajectory1.give_single_trajectory_subcell_density(subcell_number)
         return density
 
-    # #
-    # def get_noisy_level2_density(self):
-    #     cc1 = ConfigureCarrier()
-    #     real_density = self.level2_real_density
-    #     noise1 = Noise()
-    #     sensitivity = 1
-    #     # epsilon = cc1.total_epsilon * cc1.epsilon_partition[1]
-    #     # noisy_density = noise1.add_laplace(real_density, epsilon, sensitivity)
-    #     # self.level2_noisy_density = noisy_density
-
-    #
-    # this function maps original subcells(states) to real meaningful state
     def state_pruning(self) -> None:
-        # cc1 = ConfigureCarrier()
-        # density = self.level2_noisy_density
-        # lambda1 = 1 / (cc1.total_epsilon * cc1.epsilon_partition[1])
-        # threshold = 1.41 * lambda1 * cc1.state_pruning_threshold_multiplier
-        # usable_indicator = (density > threshold)
         usable_indicator = np.ones(self.subcell_number, dtype=bool)
         usable_number = int(np.sum(usable_indicator))
         real_to_usable = np.zeros(self.subcell_number, dtype=int) - 1
@@ -927,11 +838,6 @@ class Grid:
     # this function gives usable to real index dict
     def usable_to_real_dict(self, usable_number: int, real_to_usable: np.ndarray) -> None:
         gt1 = GeneralTools()
-        # usable_to_real = np.zeros(usable_number, dtype=int)
-        # for real_index in range(real_to_usable.size):
-        #     usable_index = real_to_usable[real_index]
-        #     if usable_index >= 0:
-        #         usable_to_real[usable_index] = real_index
         usable_to_real = gt1.inverse_index_dict(usable_number, real_to_usable)
         self.usable_subcell_index_to_real_index_dict = usable_to_real
 
@@ -1024,10 +930,6 @@ class Grid:
                 in_border_states.append(state_index)
         return in_border_states
 
-    #
-    #
-    #
-    # this function prepare grid
     def get_grid(self, trajectory_set1: TrajectorySet) -> None:
         cc1 = self.cc
         total_epsilon = cc1.total_epsilon
@@ -1044,9 +946,6 @@ class Grid:
 
         self.calculate_index_array_for_set(trajectory_set1)
 
-    #
-
-    #
     def set_up_state(self, trajectory_set1: TrajectorySet) -> None:
         self.get_non_noisy_level2_density(trajectory_set1)
         # self.get_noisy_level2_density()
@@ -1054,8 +953,3 @@ class Grid:
         self.usable_array_of_set(trajectory_set1)
         self.construct_real_index_neighbors()
         self.construct_usable_index_neighbors()
-    #
-
-    #
-    #
-    # to test, delete after test

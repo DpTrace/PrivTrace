@@ -15,7 +15,6 @@ class Generator:
         self.lingering_if_all_circle_threshold = 0.2
         # this parameter decides if the remaining trajectories are lingering. If states of former ratio has frequency
         # summing to total frequency times this ratio, then this trajectory is lingering.
-        # self.lingering_weight_threshold = cc.lingering_weight_threshold
         self.lingering_weight_threshold = 0.6
 
         self.markov_model = MarkovModel(self.cc)
@@ -98,11 +97,7 @@ class Generator:
         else:
             next_step = self.generate_no_gp_step(this_step, step_number_now, return_probability=return_probability)
             guidepost_used_actually = False
-        if return_probability:
-            if self.cc.debug_mode_button:
-                return next_step, guidepost_used_actually
-            else:
-                return next_step
+        return next_step, guidepost_used_actually
 
     #
     def generate_no_guidepost_one_step(self, this_step, step_number_now, neighbor_check=False,
@@ -146,10 +141,7 @@ class Generator:
         if threshold < 0:
             threshold = 0
         self.level1_length_threshold_value = threshold
-        # threshold = np.int(np.ceil(np.sqrt(np.sqrt(level1_state_number))))
-        # threshold = np.int(np.ceil(np.sqrt(level1_state_number) / 3))
 
-    #
     def simple_whole_trajectory_len_threshold(self, level1_len_threshold):
         # grid = self.markov_model.grid
         average_subdividing_number = self.average_subdividing_number
@@ -158,7 +150,6 @@ class Generator:
         if whole_threshold < level1_len_threshold:
             whole_threshold = level1_len_threshold
         self.simple_level2_length_threshold_value = whole_threshold
-        # return whole_threshold
 
     #
     def keep_this_trajectory_with_level1_threshold(self, trajectory, level1_len_threshold, filtered_time):
@@ -193,7 +184,6 @@ class Generator:
         else:
             return True
 
-    #
     def get_level1_threshold_in_use(self, start_index):
         thr = self.markov_model.level1_length_threshold[start_index]
         if thr <= 0:
@@ -202,16 +192,13 @@ class Generator:
 
     def generate_trajectory(self, neighbor_check=True):
         gt1 = GeneralTools()
-        cc1 = self.cc
         trajectory = []
         start_state = self.markov_model.start_state_index
         end_state = self.markov_model.end_state_index
         previous_step = start_state
         this_step = self.generate_no_gp_step(start_state, 0)
-        if cc1.debug_mode_button:
-            tra_guidepost_usages = []
+        tra_guidepost_usages = []
         # optimized distribution related step: real end state, revise to non optimization version
-        predicted_length = -1
         real_end_state = self.choose_end(this_step)
         predicted_length = self.markov_model.calibrator.inner_indices_shortest_path_lengths[this_step, real_end_state]
         multilayer_neighbors = self.get_multilayer_neighbors(real_end_state)
@@ -243,7 +230,6 @@ class Generator:
                 inner_this_large_cell_step_ratio = inner_step_in_this_large_cell / this_large_cell_dividing_number
             else:
                 inner_this_large_cell_step_ratio = 0
-            # if cc1.avoid_long_tail:
             if to_filter:
                 if inner_this_large_cell_step_ratio > 0.4:
                     to_filter = False
@@ -251,23 +237,16 @@ class Generator:
                     if self.keep_this_trajectory_with_level1_threshold(trajectory, level1_len_threshold,
                                                                        filtered_time) is False:
                         return False
-            if cc1.debug_mode_button:
-                generating_result = self.end_neighbor_multiplied_next_step(trajectory, this_step, previous_step,
-                                                                           step_number_now,
-                                                                           level1_step_number, multilayer_neighbors,
-                                                                           predicted_length)
-                if generating_result is False:
-                    return False
-                this_step = generating_result[0]
-                this_step_guidepost_usage = generating_result[1]
-                tra_guidepost_usages.append(this_step_guidepost_usage)
-            else:
-                this_step = self.end_neighbor_multiplied_next_step(trajectory, this_step, previous_step,
-                                                                   step_number_now,
-                                                                   level1_step_number, multilayer_neighbors,
-                                                                   predicted_length)
-                if this_step is False:
-                    return False
+            generating_result = self.end_neighbor_multiplied_next_step(trajectory, this_step, previous_step,
+                                                                       step_number_now,
+                                                                       level1_step_number, multilayer_neighbors,
+                                                                       predicted_length)
+            if generating_result is False:
+                return False
+            this_step = generating_result[0]
+            this_step_guidepost_usage = generating_result[1]
+            tra_guidepost_usages.append(this_step_guidepost_usage)
+
             previous_step = trajectory[-1]
             level1_step_number = gt1.level1_array_length(trajectory, grid)
             if level1_step_number <= 2:
@@ -291,27 +270,19 @@ class Generator:
                     else:
                         return False
         if len(trajectory) == 0:
-            # raise ValueError('this trajectory should not be empty')
             return False
         trajectory = np.array(trajectory, dtype=int)
         return trajectory
 
-    #
     def generate_trajectory_without_guidepost(self):
-        gt1 = GeneralTools()
-        cc1 = self.cc
         trajectory = []
         start_state = self.markov_model.start_state_index
         end_state = self.markov_model.end_state_index
         this_step = self.generate_no_gp_step(start_state, 0)
-        predicted_length = -1
-        # if cc1.optimization_on:
         real_end_state = self.choose_end(this_step)
         multilayer_neighbors = self.get_multilayer_neighbors(real_end_state)
         predicted_length = self.markov_model.calibrator.inner_indices_shortest_path_lengths[
             this_step, real_end_state]
-        # else:
-        #     multilayer_neighbors = False
         while (this_step != end_state) and len(trajectory) < 700:
             trajectory.append(this_step)
             step_number_now = len(trajectory)
@@ -323,7 +294,6 @@ class Generator:
         trajectory = np.array(trajectory, dtype=int)
         return trajectory
 
-    #
     def avoid_lingering(self, trajectory: np.ndarray):
         states, frequency_of_states = np.unique(trajectory, return_counts=True)
         large_frequency = - np.sort(- frequency_of_states)
@@ -336,7 +306,6 @@ class Generator:
         else:
             return False
 
-    #
     def check_large_neighbor(self, this_step, last_step):
         grid = self.markov_model.grid
         neighbor_relation = grid.large_neighbor_or_same_by_subcell_index(this_step, last_step)
@@ -347,27 +316,20 @@ class Generator:
         else:
             return False
 
-    #
     def end_neighbor_multiplied_next_step(self, trajectory, this_step, previous_step, step_number_now,
                                           level1_step_number, multilayer_neighbors, predicted_length):
         gt1 = GeneralTools()
         cc1 = self.cc
         grid = self.markov_model.grid
-        if cc1.debug_mode_button:
-            generating_result = self.generate_one_step(this_step, previous_step, step_number_now,
-                                                       return_probability=True)
-            probability = generating_result[0]
-            this_time_guidepost_usage = generating_result[1]
-        else:
-            probability = self.generate_one_step(this_step, previous_step, step_number_now, return_probability=True)
+        generating_result = self.generate_one_step(this_step, previous_step, step_number_now,
+                                                   return_probability=True)
+        probability = generating_result[0]
+        this_time_guidepost_usage = generating_result[1]
         candidates = np.arange(self.markov_model.noisy_markov_matrix.shape[0])
         if level1_step_number == 1:
-            # probability[-1] = probability[-1] * cc1.not_end_too_short_multiplier
             probability[-1] = probability[-1] * 0.5
-            # if cc1.optimization_on:
             if len(trajectory) < predicted_length * 0.5:
                 probability[-1] = probability[-1] * 0.2
-        # if cc1.end_weight_relieving is not False:
         probability[-1] = probability[-1] * 0.8
         if np.sum(probability) <= 0:
             neighbors_of_this_step = grid.subcell_neighbors_usable_index[this_step]
@@ -379,10 +341,7 @@ class Generator:
         else:
             this_step1 = gt1.draw_by_probability_without_an_element(candidates, probability, -2)
         pass
-        if cc1.debug_mode_button:
-            return this_step1, this_time_guidepost_usage
-        else:
-            return this_step1
+        return this_step1, this_time_guidepost_usage
 
     #
     def no_guidepost_next_step(self, trajectory, this_step, step_number_now, multilayer_neighbors, predicted_length):
@@ -390,14 +349,11 @@ class Generator:
         cc1 = self.cc
         probability = self.generate_no_guidepost_one_step(this_step, step_number_now, return_probability=True)
         candidates = np.arange(self.markov_model.noisy_markov_matrix.shape[0])
-        # if cc1.optimization_on:
-        # neighbor_multiplier = cc1.neighbor_multiplier
         if len(trajectory) < predicted_length * 0.5:
             probability[-1] = probability[-1] * 0.2
         this_step1 = gt1.draw_by_probability_without_an_element(candidates, probability, -2)
         return this_step1
 
-    #
     def choose_end(self, start):
         pro = self.markov_model.optimized_start_end_distribution[start, :]
         pro = pro / np.sum(pro)
@@ -405,7 +361,6 @@ class Generator:
         end = gt1.draw_by_probability(np.arange(pro.size), pro)
         return end
 
-    #
     def generate_many(self, number, neighbor_check=False):
         trajectory_list = []
         if neighbor_check:
@@ -417,21 +372,13 @@ class Generator:
                     trajectory_number_already = trajectory_number_already + 1
         else:
             i = 1
-            # for i in range(number):
             print('begin generating')
             print(datetime.datetime.now())
             while i < number + 1:
-                # if self.cc.guidepost_on:
                 trajectory = self.generate_trajectory()
-                # else:
-                #     trajectory = self.generate_trajectory_without_guidepost()
                 if trajectory is not False:
                     trajectory_list.append(trajectory)
-                    # print(i)
                     i = i + 1
-                # if i % 1000 == 0:
-                #     print(datetime.datetime.now())
-                #     print(i)
             print('end generating')
             print(datetime.datetime.now())
         return trajectory_list

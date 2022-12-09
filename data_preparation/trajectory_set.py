@@ -1,11 +1,9 @@
 import numpy as np
 from data_preparation.trajectory import Trajectory
-from tools.general_tools import GeneralTools
 
 
 class TrajectorySet:
 
-    #
     def __init__(self):
         self.trajectory_list = []
         self.trajectory_number = 0

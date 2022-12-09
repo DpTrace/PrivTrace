@@ -16,14 +16,12 @@ class Filter:
         self.end_percentage = 0.02
         self.begin_percentage = 0.02
 
-        self.distribution_threshold = self.cc.degree_state_distribution_threshold
+        self.distribution_threshold = 5
 
     #
     def find_sensitive_state(self, markov_matrix):
         cc1 = self.cc
         self.real_state_number = markov_matrix.shape[0] - 2
-        # average_out_degree_parameter = cc1.average_out_degree_parameter
-        # self.out_degree_percentage = 1 / self.real_state_number * average_out_degree_parameter
         degree_amount_indicator = self.degree_amount_sensitivity(markov_matrix)
         degree_distribution_indicator = self.degree_distribution_sensitivity(markov_matrix)
         extremely_large_degree_indicator = self.extremely_large_out_degree_sensitivity(markov_matrix)
@@ -64,8 +62,6 @@ class Filter:
     def degree_amount_sensitivity(self, matrix):
         matrix = matrix[0: -2, 0: -2]
         degree_amount_of_states = np.sum(matrix, axis=1)
-        total_degree = np.sum(degree_amount_of_states)
-        # amount_threshold = total_degree * self.out_degree_percentage
         amount_threshold = self.real_state_number * 1.414 / (self.cc.total_epsilon * self.cc.epsilon_partition[1])
         indicator = (degree_amount_of_states > amount_threshold)
         indicator = indicator[:self.real_state_number]

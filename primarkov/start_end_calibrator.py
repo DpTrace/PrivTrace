@@ -9,7 +9,6 @@ from config.parameter_carrier import ParameterCarrier
 import torch
 import torch.optim as optim
 import cvxpy as cp
-from torch.autograd import Variable
 
 
 class StartEndCalibrator:
@@ -17,7 +16,6 @@ class StartEndCalibrator:
     #
     def __init__(self, cc: ParameterCarrier):
         self.cc = cc
-
         self.non_zero_start_indices = np.array([], dtype=int)
         self.non_zero_start_values = np.array([])
         self.non_zero_end_indices = np.array([], dtype=int)
@@ -68,7 +66,6 @@ class StartEndCalibrator:
 
     #
     def distance_of_central_points(self, central_points_gps, state_index1, state_index2):
-
         state1_central_point_gps = central_points_gps[state_index1, :]
         state2_central_point_gps = central_points_gps[state_index2, :]
         displacement = state1_central_point_gps - state2_central_point_gps
@@ -83,10 +80,6 @@ class StartEndCalibrator:
         self.large_trans_indicator = large_trans_indicator
         start_states_value = noisy_matrix[-2, :-2]
         end_states_value = noisy_matrix[:-2, -1]
-        # if self.cc.only_positive_in_optimization:
-        #     non_zero_start_values, non_zero_start_indices = gt1.non_zero_values(start_states_value)
-        #     non_zero_end_values, non_zero_end_indices = gt1.non_zero_values(end_states_value)
-        # else:
         non_zero_start_values = start_states_value
         non_zero_end_values = end_states_value
         non_zero_start_indices = np.arange(start_states_value.size)
@@ -98,8 +91,6 @@ class StartEndCalibrator:
         self.all_usable_start_to_inner_indices_dict = gt1.inverse_index_dict(self.state_number, non_zero_start_indices)
         self.all_usable_end_to_inner_indices_dict = gt1.inverse_index_dict(self.state_number, non_zero_end_indices)
         self.calculate_shortest_path_length(grid)
-        if self.cc.optimization_type == 'gravity':
-            self.setup_direct_lengths(grid)
 
     #
     def calculate_shortest_path_length(self, grid: Grid):
@@ -126,17 +117,11 @@ class StartEndCalibrator:
     #
     def break_constraints(self, start_end_trip_weights):
         cc1 = self.cc
-        # loose_parameter = cc1.trajectory_number_loose_parameter_in_optimization
         if isinstance(start_end_trip_weights, torch.Tensor):
             start_end_trip_weights = start_end_trip_weights.detach().numpy()
         # non zero constraint
         if (start_end_trip_weights <= 0).any():
             return True
-        # sum to 1 constraint
-        # elif start_end_trip_weights.sum() < (1 - loose_parameter) * self.total_trajectory_number:
-        #     return True
-        # elif start_end_trip_weights.sum() > (1 + loose_parameter) * self.total_trajectory_number:
-        #     return True
         else:
             return False
 
@@ -221,71 +206,6 @@ class StartEndCalibrator:
             attractiveness[i] = attractiveness_of_i
         return attractiveness
 
-    # #
-    # def distribution_optimization_with_simple_gravity_model(self, noisy_matrix, loose_parameter=20):
-    #     # change to geo distance
-    #     # fetch distance in state network
-    #     lengths = np.empty((self.non_zero_start_indices.size, self.non_zero_start_indices.size))
-    #     distance = self.distance_of_central_points(central_point_gps, state_index, neighbor_state)
-    #
-    #     #
-    #     # row_distribution = cp.Variable(self.non_zero_start_indices.size)
-    #     distribution = cp.Variable(self.non_zero_start_indices.size, self.non_zero_start_indices.size)
-    #
-    #     attractiveness = self.attractiveness_of_states(noisy_matrix)
-    #     distribution_weights = np.tile(attractiveness, (attractiveness.shape[0], 1)) / lengths
-    #     objective = cp.Minimize(cp.norm(distribution - distribution_weights * self.total_trajectory_number))
-    #     normalized_weights = distribution_weights / np.linalg.norm(distribution_weights, axis=1, ord=2)
-    #     # no_weights_distribution = row_distribution.T @ np.ones(attractiveness.shape[0])
-    #     # distribution = cp.multiply(normalized_weights, no_weights_distribution)
-    #     constraints = [distribution >= 0,
-    #                    cp.sum(distribution,
-    #                           axis=1) <= self.non_zero_start_values + loose_parameter,
-    #                    cp.sum(distribution,
-    #                           axis=1) >= self.non_zero_start_values - loose_parameter,
-    #                    cp.sum(distribution,
-    #                           axis=0) <= self.non_zero_end_values + loose_parameter,
-    #                    cp.sum(distribution,
-    #                           axis=0) >= self.non_zero_end_values - loose_parameter]
-    #     prob = cp.Problem(objective, constraints)
-    #     prob.solve(solver=cp.SCS)
-    #     return distribution.value
-    #     # row_distribution_v = row_distribution.value
-    #     # if not isinstance(row_distribution_v, np.ndarray):
-    #     #     return None
-    #     # else:
-    #     #     all_distribution = np.matmul(np.ones((attractiveness.shape[0], 1)), row_distribution_v) * normalized_weights
-    #     #     return all_distribution
-
-    # #
-    # def distribution_optimization_with_simple_gravity_model(self, noisy_matrix, loose_parameter=20):
-    #     lengths = self.inner_indices_shortest_paths
-    #     row_distribution = cp.Variable(self.non_zero_start_indices.size)
-    #     objective = cp.Minimize(cp.square(cp.sum(row_distribution) - self.total_trajectory_number))
-    #     attractiveness = self.attractiveness_of_states(noisy_matrix)
-    #     distribution_weights = np.tile(attractiveness, (attractiveness.shape[0], 1)) / lengths
-    #     normalized_weights = distribution_weights / np.linalg.norm(distribution_weights, axis=1, ord=2)
-    #     no_weights_distribution = row_distribution.T @ np.ones(attractiveness.shape[0])
-    #     distribution = cp.multiply(normalized_weights, no_weights_distribution)
-    #     constraints = [row_distribution >= 0,
-    #                    cp.sum(distribution,
-    #                           axis=1) <= self.non_zero_start_values + loose_parameter,
-    #                    cp.sum(distribution,
-    #                           axis=1) >= self.non_zero_start_values - loose_parameter,
-    #                    cp.sum(distribution,
-    #                           axis=0) <= self.non_zero_end_values + loose_parameter,
-    #                    cp.sum(distribution,
-    #                           axis=0) >= self.non_zero_end_values - loose_parameter]
-    #     prob = cp.Problem(objective, constraints)
-    #     prob.solve(solver=cp.SCS)
-    #     row_distribution_v = row_distribution.value
-    #     if not isinstance(row_distribution_v, np.ndarray):
-    #         return None
-    #     else:
-    #         all_distribution = np.matmul(np.ones((attractiveness.shape[0], 1)), row_distribution_v) * normalized_weights
-    #         return all_distribution
-
-    #
     def distribution_optimization_with_simple_gravity_model2(self, noisy_matrix, loose_parameter=20):
         discrete_lengths = self.inner_indices_shortest_path_lengths
         row_distribution = cp.Variable(self.non_zero_start_indices.size)
@@ -328,55 +248,39 @@ class StartEndCalibrator:
 
     #
     def distribution_optimization_with_simple_gravity_model(self, noisy_matrix, loose_parameter=20):
-        # discrete_lengths = self.grades_of_discrete_lengths(self.inner_indices_shortest_path_lengths)
         discrete_lengths = self.inner_indices_shortest_path_lengths
         row_distribution = cp.Variable((1, self.non_zero_start_indices.size))
         attractiveness = self.attractiveness_of_states(noisy_matrix)
         distribution_weights = np.tile(attractiveness, (self.non_zero_start_indices.size, 1)) / np.sqrt(self.geo_lengths)
-        # distribution_weights = np.tile(attractiveness, (self.non_zero_start_indices.size, 1))
         normalized_weights = (distribution_weights.transpose() / np.linalg.norm(distribution_weights, axis=1, ord=1)).transpose()
         no_weights_distribution = np.ones((attractiveness.shape[0], 1)) @ row_distribution
         distribution = cp.multiply(normalized_weights, no_weights_distribution)
-        # expected_divided_start = cp.sum(distribution, axis=0)
         divided_weights = cp.multiply(distribution, 1 / discrete_lengths)
         expected_divided_start = cp.sum(divided_weights, axis=1)
         expected_divided_end = cp.sum(divided_weights, axis=0)
         total_trajectory_number_error = cp.square(cp.sum(distribution) - self.total_trajectory_number)
         objective = cp.Minimize(cp.norm(expected_divided_start - self.non_zero_start_values, 2) + cp.norm(expected_divided_end - self.non_zero_end_values, 2))
-        # objective = cp.Minimize(cp.norm(cp.reshape(row_distribution, self.non_zero_start_values.size) - self.non_zero_start_values, 2) + cp.norm(
-        #     expected_divided_end - self.non_zero_end_values, 2))
         constraints = [distribution >= 0,
                        total_trajectory_number_error <= loose_parameter]
         prob = cp.Problem(objective, constraints)
         prob.solve(solver=cp.ECOS)
         distribution_v = distribution.value
         return distribution_v
-        # row_distribution_v = row_distribution.value
-        # if not isinstance(row_distribution_v, np.ndarray):
-        #     return None
-        # else:
-        #     all_distribution = np.matmul(row_distribution_v.reshape((1, -1)).transpose(), np.ones((1, attractiveness.shape[0]))) * normalized_weights
-        #     return all_distribution
 
     #
     def distribution_optimization_with_simple_gravity_model3(self, noisy_matrix, loose_parameter=20):
-        # discrete_lengths = self.grades_of_discrete_lengths(self.inner_indices_shortest_path_lengths)
         discrete_lengths = self.inner_indices_shortest_path_lengths
         row_distribution = cp.Variable((1, self.non_zero_start_indices.size))
         attractiveness = self.attractiveness_of_states(noisy_matrix)
         distribution_weights = np.tile(attractiveness, (self.non_zero_start_indices.size, 1)) / np.sqrt(self.geo_lengths)
-        # distribution_weights = np.tile(attractiveness, (self.non_zero_start_indices.size, 1))
         normalized_weights = distribution_weights / np.linalg.norm(distribution_weights, axis=1, ord=2)
         no_weights_distribution = np.ones((attractiveness.shape[0], 1)) @ row_distribution
         distribution = cp.multiply(normalized_weights, no_weights_distribution)
-        # expected_divided_start = cp.sum(distribution, axis=0)
         divided_weights = cp.multiply(distribution, 1 / discrete_lengths)
         expected_divided_start = cp.sum(divided_weights, axis=0)
         expected_divided_end = cp.sum(divided_weights, axis=1)
         total_trajectory_number_error = cp.square(cp.sum(distribution) - self.total_trajectory_number)
         objective = cp.Minimize(cp.norm(expected_divided_start - self.non_zero_start_values, 2) + cp.norm(expected_divided_end - self.non_zero_end_values, 2))
-        # objective = cp.Minimize(cp.norm(cp.reshape(row_distribution, self.non_zero_start_values.size) - self.non_zero_start_values, 2) + cp.norm(
-        #     expected_divided_end - self.non_zero_end_values, 2))
         constraints = [distribution >= 0,
                        total_trajectory_number_error <= loose_parameter]
         prob = cp.Problem(objective, constraints)
@@ -384,30 +288,6 @@ class StartEndCalibrator:
         distribution_v = distribution.value
         return distribution_v
 
-    # #
-    # def distribution_optimization_with_simple_gravity_model(self, noisy_matrix, loose_parameter=20):
-    #     distrete_lengths = self.inner_indices_shortest_path_lengths
-    #     attractiveness = self.attractiveness_of_states(noisy_matrix)
-    #     distribution_weights = np.tile(attractiveness, (attractiveness.shape[0], 1)) / self.geo_lengths
-    #     normalized_weights = distribution_weights / np.linalg.norm(distribution_weights, axis=1, ord=2)
-    #     distribution = cp.Variable((self.non_zero_start_indices.size, self.non_zero_end_indices.size))
-    #     error = 0
-    #     for i in range(self.non_zero_start_indices.size):
-    #         this_start_dis_error = cp.norm(normalized_weights[i, :] - distribution[i, :] / cp.norm(distribution[i, :], 2), 2)
-    #         error = error + this_start_dis_error
-    #     objective = cp.Minimize(error)
-    #     expected_divided_start = cp.sum(cp.multiply(distribution, 1 / distrete_lengths), axis=1)
-    #     expected_divided_end = cp.sum(cp.multiply(distribution, 1 / distrete_lengths), axis=0)
-    #     constraints = [distribution >= 0,
-    #                    expected_divided_start <= self.non_zero_start_values + loose_parameter,
-    #                    expected_divided_start >= self.non_zero_start_values - loose_parameter,
-    #                    expected_divided_end <= self.non_zero_end_values + loose_parameter,
-    #                    expected_divided_end >= self.non_zero_end_values - loose_parameter]
-    #     prob = cp.Problem(objective, constraints)
-    #     prob.solve(solver=cp.SCS)
-    #     return distribution.value
-
-    #
     def distribution_optimization_torch(self):
         distribution = Variable(torch.randn([self.non_zero_start_indices.size, self.non_zero_end_indices.size]))
         distribution = torch.abs(distribution)
@@ -436,7 +316,6 @@ class StartEndCalibrator:
     #
     def distribution_optimization_cvxpy(self):
         distribution = cp.Variable((self.non_zero_start_indices.size, self.non_zero_end_indices.size))
-        # distribution = distribution / cp.sum(distribution) * self.total_trajectory_number
         objective = cp.Minimize(self.error_function(distribution))
         constraints = [distribution >= 0,
                        np.sum(distribution) == self.total_trajectory_number]
@@ -448,12 +327,7 @@ class StartEndCalibrator:
     def distribution_optimization_cvxpy12(self, loose_parameter=20):
         distribution = cp.Variable((self.non_zero_start_indices.size, self.non_zero_end_indices.size))
         objective = cp.Minimize(cp.square(cp.sum(distribution) - self.total_trajectory_number))
-        # length_divided_distribution = distribution
-        # for i in range(self.non_zero_start_indices.size):
-        #     for j in range(self.non_zero_end_indices.size):
-        #         length_divided_distribution = length_divided_distribution / self.inner_indices_shortest_paths[i, j]
         lengths = self.inner_indices_shortest_path_lengths
-        # lengths = np.ones(lengths.shape) + (lengths - 1) * 1.3
         lengths[lengths < 1] = 1
         constraints = [distribution >= 0,
                        cp.sum(cp.multiply(distribution, 1 / lengths),
@@ -471,7 +345,6 @@ class StartEndCalibrator:
     #
     def distribution_optimization_cvxpy2(self, loose_parameter=20):
         lengths = self.inner_indices_shortest_path_lengths
-        # if self.cc.length_distribution_pruning:
         lengths = lengths * self.large_trans_indicator
         lengths[lengths < 0.01] = 0.01
         distribution = cp.Variable((self.non_zero_start_indices.size, self.non_zero_end_indices.size))
@@ -492,14 +365,6 @@ class StartEndCalibrator:
 
     #
     def optimized_non_length_divided_distribution(self, divided_distribution):
-        # non_divided_distribution = np.empty(divided_distribution.shape)
-        # for i in range(divided_distribution.shape[0]):
-        #     for j in range(divided_distribution.shape[1]):
-        #         non_divided_distribution[i, j] =\
-        #             divided_distribution[i, j] * self.inner_indices_shortest_paths[i, j]
-        # start_end_dimensions = divided_distribution.shape
-        # every_element_noise_error = 3
-        # threshold = (start_end_dimensions[0] + start_end_dimensions[1]) * every_element_noise_error / (start_end_dimensions[0] * start_end_dimensions[1])
         non_divided_distribution = divided_distribution
         non_divided_distribution = \
             non_divided_distribution / np.sum(non_divided_distribution) * self.total_trajectory_number

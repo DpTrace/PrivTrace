@@ -1,7 +1,6 @@
 import numpy as np
 from tools.general_tools import GeneralTools
 from tools.noise import Noise
-import config.folder_and_file_names as config
 from config.parameter_carrier import ParameterCarrier
 
 
@@ -67,29 +66,12 @@ class GuidePost:
         else:
             inner_last = last_step
         candidates = np.arange(self.order2_trans_matrix.shape[0])
-        # candidates[-1] = self.order2_trans_matrix.shape[0] - 1
         probability = self.order2_trans_matrix[inner_last, :]
-        # if not cc1.emphasis_on_trajectories_before:
         probability = probability.copy()
-        average_step = 4
-        steps_more_than_normal = step_number_now - average_step
-        if steps_more_than_normal < 1:
-            steps_more_than_normal = 1
-        # end_multiplier = np.sqrt(steps_more_than_normal)
-
-        # end_multiplier = gt1.steps_more_than_normal_to_end_multiplier(steps_more_than_normal)
         probability = probability.astype(float)
-        # probability[-1] = probability[-1] * end_multiplier
         if return_probability:
             return probability
-        # probability = probability / np.sum(probability)
-        # inner_result = np.random.choice(candidates, p=probability)
-        # gt1 = GeneralTools()
         inner_result = gt1.draw_by_probability_without_an_element(candidates, probability, -2)
-        # if inner_result == self.end_state:
-        #     result = 'end'
-        # else:
-        #     result = inner_result
         result = inner_result
         return result
 
@@ -115,10 +97,6 @@ class GuidePost:
         noisy_matrix = noise1.add_laplace(self.order2_trans_matrix, epsilon, 1, if_regularize=False)
         noisy_matrix[:, self.start_state] = np.zeros(self.all_state_number)
         noisy_matrix[self.end_state, :] = np.zeros(self.all_state_number)
-        # if cc1.level2_neighborhood_noise_filter:
-        #     filter_matrix = np.zeros((noisy_matrix.shape[0] - 2, noisy_matrix.shape[0] - 2), dtype=int)
-        #     filter_matrix[np.ix_(self.last_step, self.next_step)] = 1
-        #     noisy_matrix[:-2, :-2] = noisy_matrix[:-2, :-2] * filter_matrix
         noisy_matrix = noise1.positive_regulation_for_markov_matrix(noisy_matrix)
         self.order2_trans_matrix = noisy_matrix.astype(np.int)
 

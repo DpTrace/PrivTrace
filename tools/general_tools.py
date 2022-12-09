@@ -1,6 +1,4 @@
 import numpy as np
-from scipy.stats import entropy
-from numpy.linalg import norm
 
 
 class GeneralTools:
@@ -193,15 +191,6 @@ class GeneralTools:
         return error_ratio
 
     #
-    def JSD(self, P, Q):
-        P = P.reshape(-1)
-        Q = Q.reshape(-1)
-        _P = P / norm(P, ord=1)
-        _Q = Q / norm(Q, ord=1)
-        _M = 0.5 * (_P + _Q)
-        return 0.5 * (entropy(_P, _M) + entropy(_Q, _M))
-
-    #
     def one_dimensional_bin_density(self, array: np.ndarray, bins: np.ndarray):
         density = np.zeros(bins.size - 1, dtype=int)
         bin_index_of_array_point = self.get_bin_index(array, bins)
@@ -214,10 +203,6 @@ class GeneralTools:
         return density
 
     def steps_more_than_normal_to_end_multiplier(self, steps_more_than_normal):
-        # if steps_more_than_normal > 0:
-        #     end_multiplier = ((steps_more_than_normal / 2 - 3) ** 3 + 32) * 0.2
-        # else:
-        #     end_multiplier = 1
         end_multiplier = 1
         return end_multiplier
 
@@ -294,51 +279,6 @@ class GeneralTools:
             return start_index - 1
         else:
             return start_index + 1
-
-    #
-    def make_up_full_continuous_tr_in_discrete_states(self, position_array: np.ndarray):
-        point_number = position_array.shape[0]
-        # total_length_with_bridge = int(np.linalg.norm((position_array[0, :] - position_array[-1, :]), ord=1) + 1)
-        total_length_with_bridge = point_number
-        for i in range(point_number - 1):
-            this_start_position = position_array[i, :]
-            this_end_position = position_array[i + 1, :]
-            total_length_with_bridge = total_length_with_bridge + int(np.linalg.norm((this_start_position - this_end_position), ord=1) - 1)
-        bridged_states_array = np.empty((total_length_with_bridge, 2), dtype=int)
-        walk_position_now = 0
-        for i in range(point_number - 1):
-            this_start_position = position_array[i, :]
-            this_end_position = position_array[i + 1, :]
-            bridged_states_array[walk_position_now:] = this_start_position
-            bridge_positions = self.full_bridge_between_position(this_start_position, this_end_position)
-            if bridge_positions is not False:
-                bridge_length = bridge_positions.shape[0]
-                bridge_start_position = walk_position_now + 1
-                bridge_end_position = walk_position_now + bridge_length + 1
-                bridged_states_array[bridge_start_position: bridge_end_position, :] = bridge_positions
-                walk_position_now = bridge_end_position
-            else:
-                walk_position_now = walk_position_now + 1
-        bridged_states_array[-1, :] = position_array[-1, :]
-        return bridged_states_array
-
-    #
-    # def unreapted_2D_int_array(self, sequence: np.ndarray):
-    #     index_array = []
-    #     frequency_array = []
-    #     index_array.append(sequence[0])
-    #     repeat_counter = 0
-    #     for point1 in sequence:
-    #         if point1 == index_array[-1]:
-    #             repeat_counter += 1
-    #         else:
-    #             index_array.append(point1)
-    #             frequency_array.append(repeat_counter)
-    #             repeat_counter = 1
-    #     frequency_array.append(repeat_counter)
-    #     index_array = np.asarray(index_array, dtype=int)
-    #     frequency_array = np.asarray(frequency_array, dtype=int)
-    #     return index_array, frequency_array
 
     #
     def check_arrays_shape(self, list_of_arrays: list, dimensions_to_check: np.ndarray):

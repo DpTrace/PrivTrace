@@ -80,14 +80,9 @@ class MarkovModel:
         state_number1 = self.all_state_number
         markov_matrix = np.zeros((state_number1, state_number1))
         trajectory_list = trajectory_set.trajectory_list
-        # processing 1000 trajectories will cost about 1 min
         print('begin calculating matrix')
         print(datetime.datetime.now())
         for trajectory1 in trajectory_list:
-            index = trajectory1.trajectory_index
-            # print(index)
-            # if index % 100 == 0:
-            #     print(datetime.datetime.now())
             not_out_of_usable = not trajectory1.has_not_usable_index
             if not_out_of_usable:
                 markov_matrix1 = self.trajectory_markov_probability(trajectory1)
@@ -106,8 +101,6 @@ class MarkovModel:
         epsilon_for_markov = total_epsilon * epsilon_partition_for_markov
         sensitivity = 1
         noisy_markov = noise1.add_laplace(real_markov, epsilon_for_markov, sensitivity, if_regularize=False)
-        # if cc1.level1_neighborhood_noise_filter:
-        #     noisy_markov[:-2, :-2] = noisy_markov[:-2, :-2] * self.neighboring_matrix
         noisy_markov[:, self.start_state_index] = np.zeros(self.all_state_number)
         noisy_markov[self.end_state_index, :] = np.zeros(self.all_state_number)
         noisy_markov[self.start_state_index, self.end_state_index] = 0
@@ -125,11 +118,6 @@ class MarkovModel:
     def get_sensitive_state(self):
         filter1 = Filter(self.cc)
         indicator = filter1.find_sensitive_state(self.noisy_markov_matrix)
-        # if self.cc.randomly_select_guidepost:
-        #     indicator = np.array([False, True])[np.random.randint(2, size=indicator.size)]
-        #     pass
-        # if self.cc.check_on_the_guidepost:
-        #     indicator = np.array([False, True])[np.ones(indicator.size, dtype=int)]
         indicator = np.concatenate((indicator, np.array([False, False])))
         indicator[self.start_state_index] = False
         indicator[self.end_state_index] = False
@@ -198,9 +186,6 @@ class MarkovModel:
     #
     def get_noisy_tran_pro_of_step_i(self, step_i):
         pro = self.noisy_markov_matrix[step_i, :]
-        # if self.cc.emphasis_on_trajectories_before:
-        #     return pro
-        # else:
         return pro.copy()
 
     #
@@ -222,19 +207,12 @@ class MarkovModel:
         self.shortest_lengths = np.zeros((self.grid.usable_state_number, self.grid.usable_state_number))
         self.large_cell_lengths = np.zeros((self.grid.usable_state_number, self.grid.usable_state_number))
         self.large_trans_with_neighbors()
-        # if self.cc.optimization_on:
-        if self.cc.optimization_type == 'gravity':
-            optimized_distribution = sec1.distribution_calibration_gravity_model_version(self.grid, self.noisy_markov_matrix, self.large_trans_indicator)
-        else:
-            optimized_distribution = sec1.distribution_calibration(self.grid, self.noisy_markov_matrix, self.large_trans_indicator)
+        optimized_distribution = sec1.distribution_calibration(self.grid, self.noisy_markov_matrix, self.large_trans_indicator)
         inner_start_index_to_usable = sec1.non_zero_start_indices
         inner_end_index_to_usable = sec1.non_zero_end_indices
         optimized_start_distribution = np.sum(optimized_distribution, axis=1)
         optimized_end_distribution = np.sum(optimized_distribution, axis=0)
         self.noisy_markov_matrix[-2, inner_start_index_to_usable] = optimized_start_distribution
-        # if self.cc.adjust_end_value:
-        #     self.noisy_markov_matrix[inner_end_index_to_usable, -1] = optimized_end_distribution / np.sum(optimized_end_distribution) * np.sum(self.noisy_markov_matrix[inner_end_index_to_usable, -1]) * self.cc.overall_end_shrink
-        # else:
         self.noisy_markov_matrix[inner_end_index_to_usable, -1] = self.noisy_markov_matrix[inner_end_index_to_usable, -1] * 1.3
         self.optimized_start_end_distribution = np.zeros(
             (self.grid.usable_state_number, self.grid.usable_state_number))
@@ -250,15 +228,6 @@ class MarkovModel:
                 self.shortest_lengths[row_index, column_index] = shortest_length
                 self.large_cell_lengths[row_index, column_index] = large_cell_length
         self.length_inside_large_cell = self.shortest_lengths - self.large_cell_lengths
-        # else:
-        #     sec1.setup_calibrator(self.grid, self.noisy_markov_matrix)
-        #     for row_index in range(self.grid.usable_state_number):
-        #         for column_index in range(self.grid.usable_state_number):
-        #             shortest_length = sec1.inner_indices_shortest_path_lengths[row_index, column_index]
-        #             large_cell_length = sec1.inner_indices_shortest_large_cell_paths_lengths[row_index, column_index]
-        #             self.shortest_lengths[row_index, column_index] = shortest_length
-        #             self.large_cell_lengths[row_index, column_index] = large_cell_length
-
         self.calibrator = sec1
 
     #
@@ -359,12 +328,6 @@ class MarkovModel:
         result = grid.add_neighbors_to_distribution(result)
         return result
 
-    #
-    # def length_in_subcell_sum(self):
-    #
-    #
-    #
-    # this is the whole procedure of build the model
     def model_building(self, trajectory_set1: TrajectorySet, grid: Grid) -> None:
         self.set_up_for_model(grid)
         self.give_neighboring_matrix(grid)
@@ -374,16 +337,12 @@ class MarkovModel:
 
     #
     def model_filtering(self, trajectory_set1: TrajectorySet, grid: Grid):
-        # if self.cc.optimization_on:
         self.start_end_trip_distribution_calibration()
         self.give_level1_length_thresholds()
-
         self.get_sensitive_state()
         self.set_up_guideposts(grid)
         self.give_guidepost_order2_info(trajectory_set1)
         self.add_noise_to_guidepost()
         self.order1_and_2_end_consistency()
-        # if self.cc.optimization_on:
-        #     self.give_whole_length_thresholds()
         pass
 

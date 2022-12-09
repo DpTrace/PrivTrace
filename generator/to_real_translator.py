@@ -5,31 +5,21 @@ import config.folder_and_file_names as config
 from generator.trajectory_generator import Generator
 from generator.state_trajectory_generation import StateGeneration
 from discretization.grid import Grid
-from tools.object_store import ObjectStore
+# from tools.object_store import ObjectStore
 from tools.general_tools import GeneralTools
 
 
 class RealLocationTranslator:
 
-    #
     def __init__(self, cc):
         self.grid = Grid(cc)
-        self.os = ObjectStore()
 
     # this function gives translator grid to use
     def load_translator(self, grid):
-        # reader = DataReader()
-        # grid_name = config.grid_save_name + '.txt'
-        # self.grid = reader.read_from_file(grid_name)
-
-        # self.grid = self.os.load_grid()
-
         self.grid = grid
 
-    #
     def translate_given_state_sequence(self, state_sequence):
         grid1 = self.grid
-
         if state_sequence.size < 2:
             start_end_array = np.empty(2, dtype=int)
             start_end_array[0] = state_sequence[0]
@@ -38,30 +28,13 @@ class RealLocationTranslator:
         all_level2_state_borders = grid1.level2_borders
         trajectory_length = state_sequence.size
         real_trajectory = np.random.random((trajectory_length, 2))
-        # if self.grid.cc.sample_with_direction:
-        #     for index_of_states in range(trajectory_length):
-        #         state = state_sequence[index_of_states]
-        #         borders = all_level2_state_borders[state]
-        #         if index_of_states == 0:
-        #             last_state = 'start'
-        #         else:
-        #             last_state = state_sequence[index_of_states - 1]
-        #         if index_of_states == trajectory_length - 1:
-        #             next_state = 'end'
-        #         else:
-        #             next_state = state_sequence[index_of_states + 1]
-        #         location = self.sample_with_direction(last_state, state, next_state, borders)
-        #         real_trajectory[index_of_states, :] = location
-        # else:
         for index_of_states in range(trajectory_length):
             state = state_sequence[index_of_states]
             borders = all_level2_state_borders[state]
-
             location = self.sample_from_a_subcell(borders)
             real_trajectory[index_of_states, :] = location
         return real_trajectory
 
-    #
     def sample_from_a_subcell(self, borders):
         gt1 = GeneralTools()
         north = borders[0]
@@ -73,7 +46,6 @@ class RealLocationTranslator:
         location = np.array([x_value, y_value])
         return location
 
-    #
     def sample_with_direction(self, last_step, this_step, next_step, borders):
         gt1 = GeneralTools()
         grid1 = self.grid
@@ -94,15 +66,11 @@ class RealLocationTranslator:
         else:
             direction = 'no'
         north, south, west, east = self.get_biased_borders(borders, direction)
-        # if self.grid.cc.sample_centrally:
-        #     borders1 = np.array([north, south, west, east])
-        #     north, south, west, east = self.centralized_biased_borders(borders1, direction)
         x_value = gt1.sample_from_interval(west, east)
         y_value = gt1.sample_from_interval(south, north)
         location = np.array([x_value, y_value])
         return location
 
-    #
     def sample_centrally(self, borders):
         north = borders[0]
         south = borders[1]
@@ -116,8 +84,6 @@ class RealLocationTranslator:
         location = self.sample_from_a_subcell(new_borders)
         return location
 
-
-    #
     def get_biased_borders(self, borders, direction):
         subcell_north = borders[0]
         subcell_south = borders[1]
@@ -162,7 +128,6 @@ class RealLocationTranslator:
             east = subcell_east
         return north, south, west, east
 
-        #
     def centralized_biased_borders(self, borders, direction):
         subcell_north = borders[0]
         subcell_south = borders[1]
@@ -209,20 +174,14 @@ class RealLocationTranslator:
             east = central_point_x + x_distance / 12
         return north, south, west, east
 
-    #
     def get_real_trajectories(self, state_trajectories):
-        # state_trajectory_list = self.os.load_state_trajectories()
-
         state_trajectory_list = state_trajectories
         real_trajectory_list = []
         for state_trajectory in state_trajectory_list:
             real_trajectory = self.translate_given_state_sequence(state_trajectory)
             real_trajectory_list.append(real_trajectory)
-        # self.os.save_synthetic_gps_trajectories(real_trajectory_list)
-
         return real_trajectory_list
 
-    #
     def translate_trajectories(self, grid, state_trajectories):
         self.load_translator(grid)
         real_tra = self.get_real_trajectories(state_trajectories)
