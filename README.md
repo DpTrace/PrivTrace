@@ -23,6 +23,8 @@ Instructions:
 
 * for the format of trajectory data, refer to ./datasets/data_format.txt
 
-* the name of the input and output file can be changed in ./config/folder_and_file_names.py, and the name of the input file can also be a parameter of main.py, like "python main.py --dataset_file_name=simple_example.dat"
+* the name of the input and output file can be changed in ./config/folder_and_file_names.py
+
+* the name of the input file can also be a parameter of main.py, like "python main.py --dataset_file_name=simple_example.dat"
 
 * by default, the output file will appear in this folder with the name "generated_tras.txt"
